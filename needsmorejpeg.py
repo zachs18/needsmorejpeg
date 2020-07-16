@@ -28,7 +28,7 @@ def limit_size(image: PIL.Image.Image, maxsize: int = 4000 * 4000) -> PIL.Image.
 		return image
 	else:
 		scale = maxsize / size
-		return image.resize((width * scale, height * scale))
+		return image.resize((int(width * scale), int(height * scale)))
 
 @bot.command(hidden=True)
 @commands.check(is_it_me)
