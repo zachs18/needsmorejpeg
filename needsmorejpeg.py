@@ -21,6 +21,15 @@ async def on_command_error(ctx, error):
 	await ctx.message.add_reaction("⚠")
 	raise error
 
+def limit_size(image: PIL.Image.Image, maxsize: int = 4000 * 4000) -> PIL.Image.Image:
+	width, height = image.size
+	size = width * height
+	if size < maxsize:
+		return image
+	else:
+		scale = maxsize / size
+		return image.resize((width * scale, height * scale))
+
 @bot.command(hidden=True)
 @commands.check(is_it_me)
 async def quit(ctx):
@@ -118,7 +127,7 @@ async def get_images_from_message(message: discord.Message, *, ignore_text: bool
 			url: str = embed.image.url
 			try:
 				image = make_image_from_url(url)
-				images.append((image, message.author, "image0.jpeg".format(attachment.filename)))
+				images.append((image, message.author, "image0.jpeg"))
 			except (discord.DiscordException, FileNotFoundError) as ex:
 				if not ignore_exceptions:
 					raise ex
@@ -131,7 +140,7 @@ async def get_images_from_message(message: discord.Message, *, ignore_text: bool
 				continue
 			try:
 				image = make_image_from_url(url)
-				images.append((image, message.author, "{0}.jpeg".format(attachment.filename)))
+				images.append((image, message.author, "image0.jpeg"))
 			except ValueError as ve: # unknown url type
 				#print(141, ve)
 				pass
@@ -198,7 +207,8 @@ def command_from_image_manipulator(func: Callable[[PIL.Image.Image], PIL.Image.I
 			images = await find_images_from_context(ctx, ignore_first_text = (len(argtypes)>0))
 			for image, author, filename in images:
 				#print(args)
-				modified_image = func(image, *args)
+				#modified_image = func(image, *args)
+				modified_image = limit_size(func(image, *args))
 				file = make_file_from_image(modified_image, filename=filename)
 				# allowed_mentions = discord.AllowedMentions(everyone = False, users = False, roles = False)
 				# message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file, allowed_mentions=allowed_mentions)
@@ -295,7 +305,8 @@ async def manipulate(ctx, *args: str):
 	def applier(*funcs):
 		def apply(image):
 			for f in funcs:
-				image = f(image)
+				#image = f(image)
+				image = limit_size(f(image))
 			return image
 		return apply
 	
