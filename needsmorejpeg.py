@@ -7,6 +7,7 @@ import PIL.Image
 import PIL.ImageOps
 import PIL.ImageFilter
 import io
+import asyncio
 import urllib.request
 
 bot = commands.Bot(command_prefix=">", activity=discord.Game("use >jpeg"))
@@ -118,10 +119,8 @@ async def get_images_from_message(message: discord.Message, *, ignore_text: bool
 		try:
 			image = make_image_from_bytes(await attachment.read())
 			images.append((image, message.author, "{0}.jpeg".format(attachment.filename)))
-		except discord.DiscordException as ex:
-			await show_error(ex)
-		except Exception as ex:
-			await show_error(ex)
+		except discord.DiscordException:
+			raise
 	for embed in message.embeds:
 		if embed.image:
 			url: str = embed.image.url
@@ -303,9 +302,10 @@ async def manipulate(ctx, *args: str):
 	"Manipulate an image (docs todo)"
 	
 	def applier(*funcs):
-		def apply(image):
+		async def apply(image):
 			for f in funcs:
 				#image = f(image)
+				await asyncio.sleep(0)
 				image = limit_size(f(image))
 			return image
 		return apply
@@ -341,17 +341,18 @@ async def manipulate(ctx, *args: str):
 		funcs.append(lambda image, func_args=func_args, manipulator=manipulator: manipulator(image, *func_args))
 	
 	func = applier(*funcs)
-	
+	await ctx.message.add_reaction("🔜")
 	async with ctx.typing():
 		images = await find_images_from_context(ctx, ignore_first_text = (len(argtypes)>0))
 		for image, author, filename in images:
 			#print(args)
-			modified_image = func(image)
+			modified_image = await func(image)
 			file = make_file_from_image(modified_image, filename=filename)
 			# allowed_mentions = discord.AllowedMentions(everyone = False, users = False, roles = False)
 			# message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file, allowed_mentions=allowed_mentions)
 			message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file)
 			await message.add_reaction("❌")
+	await ctx.message.remove_reaction("🔜", bot.user)
 
 @bot.command()
 async def delete(ctx, message: Optional[discord.Message] = None):
