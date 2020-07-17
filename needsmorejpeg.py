@@ -286,7 +286,7 @@ def invert(image: PIL.Image.Image) -> PIL.Image.Image:
 @image_manipulator
 def hflip(image: PIL.Image.Image) -> PIL.Image.Image:
 	"Flip an image horizontally"
-	return PIL.ImageOps.flip(image.rotate(90)).rotate(-90)
+	return PIL.ImageOps.flip(image.rotate(90, expand=True)).rotate(-90, expand=True)
 
 @image_manipulator
 def vflip(image: PIL.Image.Image) -> PIL.Image.Image:
