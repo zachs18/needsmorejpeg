@@ -87,6 +87,7 @@ def make_file_from_image(image: PIL.Image.Image, filename: str, *, quality: int 
 def make_image_from_bytes(bs: bytes) -> PIL.Image.Image:
 	infile = io.BytesIO(bs)
 	image = PIL.Image.open(infile).convert("RGB")
+	image = PIL.ImageOps.exif_transpose(image)
 	return image
 
 def make_image_from_url(url: str) -> PIL.Image.Image:
