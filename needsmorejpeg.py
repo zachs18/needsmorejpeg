@@ -308,8 +308,13 @@ def blur(image: PIL.Image.Image) -> PIL.Image.Image:
 
 @bot.command()
 async def manipulate(ctx, *args: str):
-	"Manipulate an image (docs todo)"
-	
+	"""Manipulate an image
+	Any sequence of image manipulation commands (e.g. invert, jpeg, rotate <degrees>) may be used.
+	Syntax:
+	>manipulate <command1> [command1 args (if any)] [<command1> [command2 args (if any)]] ...
+	Example:
+	>manipulate rotate 45 jpeg invert rotate -45
+	"""
 	def applier(*funcs):
 		async def apply(image):
 			for f in funcs:
