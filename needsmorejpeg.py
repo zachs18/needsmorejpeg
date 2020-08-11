@@ -357,7 +357,7 @@ async def manipulate(ctx, *args: str):
 	func = applier(*funcs)
 	await ctx.message.add_reaction("🔜")
 	async with ctx.typing():
-		images = await find_images_from_context(ctx, ignore_first_text = (len(argtypes)>0))
+		images = await find_images_from_context(ctx, ignore_first_text = true)
 		for image, author, filename in images:
 			#print(args)
 			modified_image = await func(image)
