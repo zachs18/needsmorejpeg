@@ -20,6 +20,8 @@ def is_it_me(ctx) -> bool:
 async def on_command_error(ctx, error):
 	if isinstance(error, discord.ext.commands.CommandNotFound):
 		return
+	if isinstance(error.__cause__, discord.errors.Forbidden):
+		await ctx.message.add_reaction("⛔")
 	await ctx.message.add_reaction("⚠")
 	raise error
 
@@ -56,6 +58,11 @@ async def whoami(ctx):
 async def goodbot(ctx):
 	"🥺"
 	await ctx.message.add_reaction("🥰")
+
+@bot.command()
+async def source(ctx):
+	"Links to the github source for this bot"
+	await ctx.send("Source: https://github.com/zachs18/needsmorejpeg/")
 
 @bot.command()
 async def whois(ctx):
