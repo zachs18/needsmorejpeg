@@ -6,6 +6,7 @@ from discord.ext import commands
 import PIL.Image
 import PIL.ImageOps
 import PIL.ImageFilter
+import PIL.ImageEnhance
 import io
 import asyncio
 import urllib.request
@@ -272,6 +273,12 @@ def rotate180(image: PIL.Image.Image) -> PIL.Image.Image:
 def rotate(image: PIL.Image.Image, degrees: float) -> PIL.Image.Image:
 	"Rotate an image a number of degrees."
 	return image.rotate(degrees, expand=True)
+
+@image_manipulator(args=(float,))
+def sharpen(image: PIL.Image.Image, factor: float) -> PIL.Image.Image:
+	"Sharpen an image by a factor."
+	sharpener = PIL.ImageEnhance.Sharpness(image)
+	return sharpener.enhance(factor)
 
 @image_manipulator(args=(float,))
 def zoom(image: PIL.Image.Image, zoom_factor: float) -> PIL.Image.Image:
