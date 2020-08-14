@@ -23,6 +23,8 @@ async def on_command_error(ctx, error):
 		return
 	if isinstance(error.__cause__, discord.errors.Forbidden):
 		await ctx.message.add_reaction("⛔")
+	if isinstance(error.__cause__, PIL.Image.DecompressionBombError):
+		await ctx.message.add_reaction("😵")
 	await ctx.message.add_reaction("⚠")
 	raise error
 
