@@ -12,9 +12,9 @@ import asyncio
 import urllib.request
 import random
 
-bot = commands.Bot(command_prefix=">", activity=discord.Game("use >jpeg"))
+from ..bot import bot
 
-def is_it_me(ctx) -> bool:
+def is_owner(ctx) -> bool:
 	return bot.is_owner(ctx.message.author)
 
 @bot.event
@@ -39,7 +39,7 @@ def limit_size(image: PIL.Image.Image, maxsize: int = 4000 * 4000) -> PIL.Image.
 		return image.resize((int(width * scale), int(height * scale)))
 
 @bot.command(hidden=True)
-@commands.check(is_it_me)
+@commands.check(is_owner)
 async def quit(ctx):
 #	await ctx.send("Goodbye")
 	await ctx.message.add_reaction("👋")
