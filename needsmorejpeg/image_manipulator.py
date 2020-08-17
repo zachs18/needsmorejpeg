@@ -124,12 +124,12 @@ async def find_images_from_context(ctx, *, ignore_first_text: bool = False) -> L
 	return images
 
 
-def command_from_image_manipulator(func: Callable[[PIL.Image.Image], PIL.Image.Image], /, argtypes: Optional[Tuple] = ()):
+def command_from_image_manipulator(func: Callable[[PIL.Image.Image], PIL.Image.Image], /, argtypes: Tuple = ()):
 	if func is None:
 		raise ValueError
 	async def command(ctx: discord.ext.commands.Context, *args):
 		if argtypes:
-			args = [typ(arg) for typ, arg in zip(argtypes, args)]
+			args = tuple([typ(arg) for typ, arg in zip(argtypes, args)])
 		else:
 			args = ()
 		async with ctx.typing():
@@ -149,7 +149,20 @@ def command_from_image_manipulator(func: Callable[[PIL.Image.Image], PIL.Image.I
 
 image_manipulators: Dict[str, Tuple[Callable[[PIL.Image.Image], PIL.Image.Image], Tuple]] = {}
 
-def image_manipulator(func: "Optional[Callable[[PIL.Image.Image, ...], PIL.Image.Image]]" = None, \
+# Note, func should really be
+# Optional[Union[
+#     Callable[[PIL.Image.Image], PIL.Image.Image],
+#     Callable[[PIL.Image.Image, str], PIL.Image.Image],
+#     Callable[[PIL.Image.Image, float], PIL.Image.Image],
+#     Callable[[PIL.Image.Image, int], PIL.Image.Image],
+#     # etc.
+#     Callable[[PIL.Image.Image, str, str], PIL.Image.Image],
+#     Callable[[PIL.Image.Image, str, float], PIL.Image.Image],
+#     # etc.
+#     Callable[[PIL.Image.Image, str, str, str], PIL.Image.Image]
+#     # etc.
+# ], but that is not representable
+def image_manipulator(func: Optional[Callable[..., PIL.Image.Image]] = None, \
 					  *, \
 					  name: Optional[str] = None, \
 					  names: Optional[List[str]] = None, \
@@ -173,7 +186,7 @@ def image_manipulator(func: "Optional[Callable[[PIL.Image.Image, ...], PIL.Image
 	for name in names:
 		image_manipulators[name] = (func, argtypes)
 		bot.command(name=name)(command_from_image_manipulator(func, argtypes=argtypes))
-	return func
+	return func # So the function can be used elsewhere
 
 @bot.command()
 async def manipulate(ctx, *args: str):
