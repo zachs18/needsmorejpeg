@@ -83,4 +83,4 @@ def crunch(image: PIL.Image.Image, degrees: float) -> PIL.Image.Image:
 	image = image.rotate(-degrees, expand=True)
 	image = jpeg(image)
 	radians = math.radians(degrees)
-	return zoom(image, (math.sin(radians) + math.cos(radians)) ** 2) # square the scale factor since the rotation happens twice
+	return zoom(image, (abs(math.sin(radians)) + abs(math.cos(radians))) ** 2) # square the scale factor since the rotation happens twice
