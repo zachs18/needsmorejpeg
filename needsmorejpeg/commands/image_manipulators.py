@@ -77,6 +77,7 @@ def blur(image: PIL.Image.Image) -> PIL.Image.Image:
 @image_manipulator(names=["crush", "crunch"], argtypes=(float,))
 def crunch(image: PIL.Image.Image, degrees: float) -> PIL.Image.Image:
 	"Rotate an image a number of degrees, jpeg it, rotate it again in the opposite direction, jpeg it, then zoom in to the original size."
+	degrees %= 360
 	image = image.rotate(degrees, expand=True)
 	image = jpeg(image)
 	image = image.rotate(-degrees, expand=True)
