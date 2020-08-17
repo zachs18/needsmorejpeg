@@ -28,6 +28,29 @@ async def on_command_error(ctx, error):
 	else:
 		await ctx.message.add_reaction("⚠")
 		raise error
+		
+@bot.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+	if payload.user_id == bot.user.id: # ignore our own reactions
+		return
+	if payload.emoji.name == "❌": # deletion request
+		message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+		if message.author != bot.user:
+			return
+		if (not payload.member.bot) and payload.member in message.mentions:
+			await message.delete()
+			await message.channel.send("Deleted", delete_after=5)
+"""
+@bot.event
+async def on_reaction_add(reaction: discord.Reaction, user: Union[discord.Member, discord.User]):
+	if reaction.message.author != bot.user or reaction.emoji != "❌":
+		return
+	async for user in reaction.users():
+		if (not user.bot) and user in reaction.message.mentions:
+			await reaction.message.delete()
+			await reaction.message.channel.send("Deleted", delete_after=5)
+	"""
+
 
 @bot.command(hidden=True)
 @commands.check(is_owner)
