@@ -4,6 +4,7 @@ import subprocess
 import discord # import FFmpegAudio
 import urllib
 import io
+import os
 import tempfile
 import asyncio
 
@@ -115,6 +116,8 @@ async def yt(ctx, arg: str):
 
 	# voice_data_wave = espeak.stdout.read()
 	voice_data = discord.FFmpegOpusAudio(open(filename, "rb"), pipe=True)
+
+	os.remove(filename)
 
 	if ctx.message.guild.voice_client is not None and ctx.message.guild.voice_client.is_connected():
 		voice_client = ctx.message.guild.voice_client
