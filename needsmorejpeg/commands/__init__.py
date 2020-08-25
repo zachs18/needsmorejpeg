@@ -2,3 +2,4 @@
 
 from .misc import *
 from .image_manipulators import *
+from .voice import *
