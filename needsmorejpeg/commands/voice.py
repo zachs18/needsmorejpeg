@@ -11,7 +11,7 @@ import asyncio
 from ..bot import bot, commands, is_owner
 
 @bot.command()
-async def say(ctx, *args: str):
+async def say(ctx, *args: str, espeak_args = []):
 	"Joins the voice channel you are in and says what you passed to it"
 	try:
 		voice_channel = ctx.author.voice.channel
@@ -21,7 +21,7 @@ async def say(ctx, *args: str):
 		raise ValueError
 
 	try:
-		espeak = subprocess.Popen(["espeak", "--stdout"], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+		espeak = subprocess.Popen(["espeak", "--stdout", *espeak_args], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 	except FileNotFoundError:
 		await ctx.send("Could not open espeak to generate voice")
 		raise ValueError
@@ -31,6 +31,12 @@ async def say(ctx, *args: str):
 
 	# voice_data_wave = espeak.stdout.read()
 	voice_data = discord.FFmpegOpusAudio(espeak.stdout, pipe=True)
+	err = espeak.stderr.read()
+
+	if err or (espeak.poll() is not None and espeak.poll()):
+		await ctx.send("Error: %s" % err.decode())
+		await ctx.message.add_reaction("🔇")
+		return
 
 	if ctx.message.guild.voice_client is not None and ctx.message.guild.voice_client.is_connected():
 		voice_client = ctx.message.guild.voice_client
@@ -39,6 +45,22 @@ async def say(ctx, *args: str):
 
 	voice_client.play(voice_data)
 	await ctx.message.add_reaction("✅")
+
+@bot.command()
+async def say_slow(ctx, *args: str):
+	await say(ctx, *args, espeak_args = ["-s", "90"])
+
+@bot.command()
+async def say_fast(ctx, *args: str):
+	await say(ctx, *args, espeak_args = ["-s", "200"])
+
+@bot.command()
+async def say_speed(ctx, speed: int, *args: str):
+	await say(ctx, *args, espeak_args = ["-s", str(speed)])
+
+@bot.command()
+async def say_voice(ctx, voice: str, *args: str):
+	await say(ctx, *args, espeak_args = ["-v", voice])
 
 @bot.command()
 async def leave(ctx):
@@ -74,6 +96,8 @@ async def play(ctx, arg: Optional[str]):
 		await ctx.send("Could not find a voice channel")
 		raise ValueError
 
+	await ctx.message.add_reaction("🔜")
+
 	if ctx.message.attachments:
 		data = await ctx.message.attachments[0].read()
 	else:
@@ -108,7 +132,13 @@ async def yt(ctx, arg: str):
 		await ctx.send("Could not find a voice channel")
 		raise ValueError
 
+	if arg.startswith('-') or not (arg.startswith('http') or arg.startswith('ytsearch:')):
+		await ctx.send("Invalid URL")
+		raise ValueEroor
+
 	fd, filename = tempfile.mkstemp(suffix=".mp3")
+
+	await ctx.message.add_reaction("🔜")
 
 	ytdl = subprocess.Popen(["youtube-dl", arg, "--no-continue", "-f", "bestaudio", "--audio-format", "mp3", "-o", filename])
 	while ytdl.poll() is None:
