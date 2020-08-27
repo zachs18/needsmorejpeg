@@ -11,7 +11,7 @@ import asyncio
 from ..bot import bot, commands, is_owner
 
 @bot.command()
-async def say(ctx, *args: str, espeak_args = []):
+async def say(ctx, *, args: str, espeak_args = []):
 	"Joins the voice channel you are in and says what you passed to it"
 	try:
 		voice_channel = ctx.author.voice.channel
@@ -20,21 +20,23 @@ async def say(ctx, *args: str, espeak_args = []):
 		await ctx.send("Could not find a voice channel")
 		raise ValueError
 
+	stderr = tempfile.TemporaryFile()
+
 	try:
-		espeak = subprocess.Popen(["espeak", "--stdout", *espeak_args], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+		espeak = subprocess.Popen(["espeak", "--stdout", *espeak_args], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=stderr)
 	except FileNotFoundError:
 		await ctx.send("Could not open espeak to generate voice")
 		raise ValueError
 
-	espeak.stdin.write(' '.join(arg for arg in args).encode())
+	espeak.stdin.write(args.encode())
 	espeak.stdin.close()
 
 	# voice_data_wave = espeak.stdout.read()
 	voice_data = discord.FFmpegOpusAudio(espeak.stdout, pipe=True)
-	err = espeak.stderr.read()
 
-	if err or (espeak.poll() is not None and espeak.poll()):
-		await ctx.send("Error: %s" % err.decode())
+	if (espeak.poll() is not None and espeak.poll()):
+		stderr.seek(0)
+		await ctx.send("Error: %s" % stderr.read().decode())
 		await ctx.message.add_reaction("🔇")
 		return
 
@@ -47,20 +49,20 @@ async def say(ctx, *args: str, espeak_args = []):
 	await ctx.message.add_reaction("✅")
 
 @bot.command()
-async def say_slow(ctx, *args: str):
-	await say(ctx, *args, espeak_args = ["-s", "90"])
+async def say_slow(ctx, *, args: str):
+	await say(ctx, args=args, espeak_args = ["-s", "90"])
 
 @bot.command()
-async def say_fast(ctx, *args: str):
-	await say(ctx, *args, espeak_args = ["-s", "200"])
+async def say_fast(ctx, *, args: str):
+	await say(ctx, args=args, espeak_args = ["-s", "200"])
 
 @bot.command()
-async def say_speed(ctx, speed: int, *args: str):
-	await say(ctx, *args, espeak_args = ["-s", str(speed)])
+async def say_speed(ctx, speed: int, *, args: str):
+	await say(ctx, args=args, espeak_args = ["-s", str(speed)])
 
 @bot.command()
-async def say_voice(ctx, voice: str, *args: str):
-	await say(ctx, *args, espeak_args = ["-v", voice])
+async def say_voice(ctx, voice: str, *, args: str):
+	await say(ctx, args=args, espeak_args = ["-v", voice])
 
 @bot.command()
 async def leave(ctx):
