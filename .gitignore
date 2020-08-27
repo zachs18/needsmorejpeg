@@ -1,2 +1,3 @@
 secret.txt
 *.pyc
+.mypy_cache/
