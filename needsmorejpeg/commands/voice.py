@@ -142,20 +142,20 @@ async def yt(ctx, arg: str):
 
 	await ctx.message.add_reaction("🔜")
 
-	ytdl = subprocess.Popen(["youtube-dl", arg, "--no-continue", "-f", "bestaudio", "--audio-format", "mp3", "-o", filename])
+	ytdl = subprocess.Popen(["youtube-dl", arg, "--no-playlist", "--no-continue", "-f", "bestaudio", "--extract-audio", "--audio-format", "mp3", "-o", filename])
 	while ytdl.poll() is None:
 		await asyncio.sleep(1)
 
 	# voice_data_wave = espeak.stdout.read()
-	voice_data = discord.FFmpegOpusAudio(open(filename, "rb"), pipe=True)
-
-	os.remove(filename)
+	voice_data = discord.FFmpegOpusAudio(filename, pipe=False)
 
 	if ctx.message.guild.voice_client is not None and ctx.message.guild.voice_client.is_connected():
 		voice_client = ctx.message.guild.voice_client
 	else:
 		voice_client = await voice_channel.connect()
 
-	voice_client.play(voice_data)
+	#os.remove(filename) # I don't know if ffmpeg is guaranteed to have opened the file yet, so remove it in a callback
+	voice_client.play(voice_data, after = lambda: os.remove(filename))
+
 	await ctx.message.add_reaction("✅")
 
