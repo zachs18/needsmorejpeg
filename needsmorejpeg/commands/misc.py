@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import random
+import unicodedata
 
 from ..bot import bot
 
@@ -68,3 +69,14 @@ async def castlevania(ctx):
 async def cursive(ctx, *, arg):
 	"Repeats what you tell it to, but 𝓲𝓷 𝓬𝓾𝓻𝓼𝓲𝓿𝓮"
 	await ctx.send(arg.translate(cursive_translation))
+
+@bot.command()
+async def charname(ctx, *, arg):
+	"Tells you the unicode character names of each character in the string you give it"
+	def get_unicode_name(c: "character") -> str:
+		try:
+			return unicodedata.name(c)
+		except:
+			return "<unknown>"
+
+	await ctx.send('\n'.join('`{}`'.format(s) for s in map(get_unicode_name, arg)))
