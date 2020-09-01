@@ -155,7 +155,7 @@ async def yt(ctx, arg: str):
 		voice_client = await voice_channel.connect()
 
 	#os.remove(filename) # I don't know if ffmpeg is guaranteed to have opened the file yet, so remove it in a callback
-	voice_client.play(voice_data, after = lambda: os.remove(filename))
+	voice_client.play(voice_data, after = lambda err: os.remove(filename))
 
 	await ctx.message.add_reaction("✅")
 
