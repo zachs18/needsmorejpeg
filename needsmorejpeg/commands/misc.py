@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import random
 import unicodedata
+import discord
 
 from ..bot import bot
 
@@ -79,4 +80,13 @@ async def charname(ctx, *, arg):
 		except:
 			return "<unknown>"
 
-	await ctx.send('\n'.join('`{}`'.format(s) for s in map(get_unicode_name, arg)))
+	try:
+		await ctx.send(', '.join('`{}`'.format(s) for s in map(get_unicode_name, arg)))
+	except discord.errors.HTTPException: # bad length, most likely
+		await ctx.message.add_reaction("🇹")
+		await ctx.message.add_reaction("🇴")
+		await ctx.message.add_reaction("🅾")
+		await ctx.message.add_reaction("🇱")
+		await ctx.message.add_reaction("⭕")
+		await ctx.message.add_reaction("🇳")
+		await ctx.message.add_reaction("🇬")
