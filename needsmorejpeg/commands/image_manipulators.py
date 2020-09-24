@@ -21,7 +21,7 @@ from ..image_manipulator import image_manipulator, limit_size
 def jpeg(image: PIL.Image.Image) -> PIL.Image.Image:
 	"JPEG Compress an image with lowest quality"
 	outfile = io.BytesIO()
-	image.save(outfile, format="JPEG", quality=1)
+	image.convert("RGB").save(outfile, format="JPEG", quality=1)
 	outfile.seek(0)
 	return PIL.Image.open(outfile)
 
