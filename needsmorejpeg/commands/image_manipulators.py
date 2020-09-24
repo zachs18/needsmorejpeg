@@ -93,31 +93,13 @@ color_names = {
 	"hotpink": "FF0080",
 }
 
-hue_range = 40.0
+hue_range = 32.0
 
 def hue(rgb: "Sequence[int, int, int, ...]") -> float:
-	"Hue of a color in degrees"
-	r, g, b, *rest = rgb
-	mx, mn = max(r, g, b), min(r, g, b)
-	if mx == mn: # https://stackoverflow.com/a/23094494/5142683
-		return 0.0
-	elif r == mx: # the + 0 are to force numpy uint8s into python ints
-		return (  0.0 + 60.0 * (g + 0 - b) / (mx + 0 - mn)) % 360.0
-	elif g == mx:
-		return (120.0 + 60.0 * (b + 0 - r) / (mx + 0 - mn)) % 360.0
-	else: #if b == mx:
-		return (240.0 + 60.0 * (r + 0 - g) / (mx + 0 - mn)) % 360.0
+	"Hue of a color in range [0,255]"
+	return  PIL.Image.new("RGB", (1,1), rgb[:3]).convert("HSV").getpixel((0,0))[0]
 
-def greyscale(rgb: "Sequence[int, int, int, ...]") -> "Sequence[int, int, int, ...]":
-	r, g, b, *rest = rgb
-	g = int(0.30 * r + 0.59 * g + 0.11 * b)
-	return [g, g, g, *rest]
-
-@image_manipulator(argtypes=(str,))
-def highlight(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
-	"Highlight a specific color in an image. Inefficient, so has a small size limit"
-	image = limit_size(image, 640 * 640)
-	
+def parse_color(color: str) -> Tuple[int, int, int]:
 	if color[:1] == '#':
 		color = color[1:]
 	if not (set(color.upper()) <= {*"0123456789ABCDEF"}):
@@ -129,29 +111,63 @@ def highlight(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
 		color = color[0]*2 + color[1]*2 + color[2]*2
 	if len(color) != 6:
 		raise ValueError("unrecognized color")
-	color = [int(color[i:i+2], 16) for i in [0,2,4]]
-	
+	return tuple(int(color[i:i+2], 16) for i in (0,2,4))
+
+@image_manipulator(argtypes=())
+def saturate(image: PIL.Image.Image) -> PIL.Image.Image:
+	"Saturate all colors in an image."
+	arr = np.array(image.convert("HSV"))
+	arr[:,:,1] = np.minimum(arr[:,:,1]*2., 255)
+	new_image = PIL.Image.fromarray(arr, mode="HSV").convert("RGB")
+	if 'A' in image.mode:
+		new_image.putalpha(image.getchannel('A'))
+	return new_image
+
+@image_manipulator(argtypes=(str,))
+def highlight(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
+	"Highlight a particular color in an image"
+	color = parse_color(color)
+
 	h = hue(color)
-	if h + hue_range >= 360.0:
-		h -= 360.0
-		# -hue_range <= h <= 360 - hue_range
-	
-	arr = np.array(image)
-	if h >= hue_range and h <= 360.0 - hue_range:
-		# don't need to deal with two ranges [0,x]&[360-x,360]
-		for row in arr:
-			for pixel in row:
-				if not h - hue_range <= hue(pixel) <= h + hue_range:
-					pixel[:] = greyscale(pixel)
+
+	h_low = (h - hue_range) % 255
+	h_high = (h + hue_range) % 255
+
+	arr = np.array(image.convert("HSV"))
+	if h_low > h_high:
+		bad_hues = np.logical_and(arr[:,:,0] > h_high, arr[:,:,0] < h_low)
 	else:
-		# do need to deal with two ranges [0,x]&[360-x,360]
-		for row in arr:
-			for pixel in row:
-				hh = hue(pixel)
-				if not (hh <= h + hue_range or h - hue_range + 360 <= hh):
-					pixel[:] = greyscale(pixel)
-	
-	return PIL.Image.fromarray(arr)
+		bad_hues = np.logical_or(arr[:,:,0] > h_high, arr[:,:,0] < h_low)
+	arr[:,:,1][bad_hues] = 0
+	new_image = PIL.Image.fromarray(arr, mode="HSV").convert("RGB")
+	if 'A' in image.mode:
+		new_image.putalpha(image.getchannel('A'))
+	return new_image
+
+@image_manipulator(argtypes=(str,))
+def tint(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
+	"Tint an image to a particular color"
+	color = parse_color(color)
+
+	h = hue(color)
+
+	arr = np.array(image.convert("HSV"))
+	arr[:,:,0] = int(h)
+	new_image = PIL.Image.fromarray(arr, mode="HSV").convert("RGB")
+	if 'A' in image.mode:
+		new_image.putalpha(image.getchannel('A'))
+	return new_image
+
+@image_manipulator(argtypes=(int,))
+def hueshift(image: PIL.Image.Image, amount: int) -> PIL.Image.Image:
+	"Hue shift an image. Hues range from [0, 255]."
+
+	arr = np.array(image.convert("HSV"))
+	arr[:,:,0] += amount
+	new_image = PIL.Image.fromarray(arr, mode="HSV").convert("RGB")
+	if 'A' in image.mode:
+		new_image.putalpha(image.getchannel('A'))
+	return new_image
 
 @image_manipulator(names=["crush", "crunch"], argtypes=(float,))
 def crunch(image: PIL.Image.Image, degrees: float) -> PIL.Image.Image:
