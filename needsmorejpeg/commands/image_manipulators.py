@@ -12,6 +12,7 @@ import asyncio
 import urllib.request
 import random
 import math # sin/cos
+import numpy as np
 
 from ..bot import bot
 from ..image_manipulator import image_manipulator
@@ -73,6 +74,79 @@ def blur(image: PIL.Image.Image) -> PIL.Image.Image:
 	"Blur an image"
 	return image.filter(PIL.ImageFilter.BLUR)
 
+color_names = {
+	"red": "FF0000",
+	"orange": "FF8000",
+	"yellow": "FFFF00",
+	"lime": "80FF00",
+	"green": "00FF00",
+	"creamgreen": "00FF80",
+	"cyan": "00FFFF",
+	"denim": "0080FF",
+	"blue": "0000FF",
+	"purple": "8000FF",
+	"magenta": "FF00FF",
+	"hotpink": "FF0080",
+}
+
+hue_range = 40.0
+
+def hue(rgb: "Sequence[int, int, int, ...]") -> float:
+	"Hue of a color in degrees"
+	r, g, b, *_ = rgb
+	mx, mn = max(r, g, b), min(r, g, b)
+	if mx == mn:
+		return 0.0
+	elif r == mx: # the + 0 are to force numpy uint8s into python ints
+		return (  0.0 + 60.0 * (g + 0 - b) / (mx + 0 - mn)) % 360.0
+	elif g == mx:
+		return (120.0 + 60.0 * (b + 0 - r) / (mx + 0 - mn)) % 360.0
+	else: #if b == mx:
+		return (240.0 + 60.0 * (r + 0 - g) / (mx + 0 - mn)) % 360.0
+
+def greyscale(rgb: "Sequence[int, int, int, ...]") -> "Sequence[int, int, int, ...]":
+	r, g, b, *_ = rgb
+	g = int(0.30 * r + 0.59 * g + 0.11 * b)
+	return [g, g, g, *_]
+
+@image_manipulator(argtypes=(str,))
+def highlight(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
+	"Highlight a specific color in an image"
+	
+	if color[:1] == '#':
+		color = color[1:]
+	if not (set(color.upper()) <= {*"0123456789ABCDEF"}):
+		if color in color_names:
+			color = color_names[color]
+		else:
+			raise ValueError("unrecognized color")
+	if len(color) == 3:
+		color = color[0]*2 + color[1]*2 + color[2]*2
+	if len(color) != 6:
+		raise ValueError("unrecognized color")
+	color = [int(color[i:i+2], 16) for i in [0,2,4]]
+	
+	h = hue(color)
+	if h + hue_range >= 360.0:
+		h -= 360.0
+		# -hue_range <= h <= 360 - hue_range
+	
+	arr = np.array(image)
+	if h >= hue_range and h <= 360.0 - hue_range:
+		# don't need to deal with two ranges [0,x]&[360-x,360]
+		for row in arr:
+			for pixel in row:
+				if not h - hue_range <= hue(pixel) <= h + hue_range:
+					pixel[:] = greyscale(pixel)
+	else:
+		# do need to deal with two ranges [0,x]&[360-x,360]
+		for row in arr:
+			for pixel in row:
+				hh = hue(pixel)
+				if not (hh <= h + hue_range or h - hue_range + 360 <= hh):
+					pixel[:] = greyscale(pixel)
+	
+	return PIL.Image.fromarray(arr)
 
 @image_manipulator(names=["crush", "crunch"], argtypes=(float,))
 def crunch(image: PIL.Image.Image, degrees: float) -> PIL.Image.Image:
