@@ -15,7 +15,7 @@ import math # sin/cos
 import numpy as np
 
 from ..bot import bot
-from ..image_manipulator import image_manipulator
+from ..image_manipulator import image_manipulator, limit_size
 
 @image_manipulator(names=["jpg", "jpeg"], argtypes=())
 def jpeg(image: PIL.Image.Image) -> PIL.Image.Image:
@@ -95,7 +95,7 @@ def hue(rgb: "Sequence[int, int, int, ...]") -> float:
 	"Hue of a color in degrees"
 	r, g, b, *_ = rgb
 	mx, mn = max(r, g, b), min(r, g, b)
-	if mx == mn:
+	if mx == mn: # https://stackoverflow.com/a/23094494/5142683
 		return 0.0
 	elif r == mx: # the + 0 are to force numpy uint8s into python ints
 		return (  0.0 + 60.0 * (g + 0 - b) / (mx + 0 - mn)) % 360.0
@@ -111,7 +111,8 @@ def greyscale(rgb: "Sequence[int, int, int, ...]") -> "Sequence[int, int, int, .
 
 @image_manipulator(argtypes=(str,))
 def highlight(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
-	"Highlight a specific color in an image"
+	"Highlight a specific color in an image. Inefficient, so has a small size limit"
+	image = limit_size(image, 640 * 640)
 	
 	if color[:1] == '#':
 		color = color[1:]
