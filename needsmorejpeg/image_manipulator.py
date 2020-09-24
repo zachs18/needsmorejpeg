@@ -28,17 +28,17 @@ headers = {
 
 Image_with_info = Tuple[PIL.Image.Image, discord.Member, str]
 
-def make_file_from_image(image: PIL.Image.Image, filename: str, *, quality: int = 100, format: str = "JPEG") -> discord.File:
+def make_file_from_image(image: PIL.Image.Image, filename: str, *, quality: int = 100, format: str = "PNG") -> discord.File:
 	"Convert a PIL.Image.Image to a discord.File with the specified @kwparam format and @kwparam quality"
 	outfile = io.BytesIO()
 	image.save(outfile, quality=quality, optimize=True, progressive=True, format=format)
 	outfile.seek(0)
-	file = discord.File(outfile, filename + ".jpeg")
+	file = discord.File(outfile, filename + "." + format)
 	return file
 
 def make_image_from_bytes(bs: bytes) -> PIL.Image.Image:
 	infile = io.BytesIO(bs)
-	image = PIL.Image.open(infile).convert("RGB")
+	image = PIL.Image.open(infile).convert("RGBA")
 	image = PIL.ImageOps.exif_transpose(image)
 	return image
 
@@ -70,7 +70,7 @@ async def get_images_from_message(message: discord.Message, *, ignore_text: bool
 	for attachment in message.attachments:
 		try:
 			image = make_image_from_bytes(await attachment.read())
-			images.append((image, message.author, "{0}.jpeg".format(attachment.filename)))
+			images.append((image, message.author, str(attachment.filename)))
 		except discord.DiscordException:
 			raise
 	for embed in message.embeds:
@@ -78,7 +78,7 @@ async def get_images_from_message(message: discord.Message, *, ignore_text: bool
 			url: str = embed.image.url
 			try:
 				image = make_image_from_url(url)
-				images.append((image, message.author, "image0.jpeg"))
+				images.append((image, message.author, "image0"))
 			except (discord.DiscordException, FileNotFoundError) as ex:
 				if not ignore_exceptions:
 					raise ex
@@ -91,7 +91,7 @@ async def get_images_from_message(message: discord.Message, *, ignore_text: bool
 				continue
 			try:
 				image = make_image_from_url(url)
-				images.append((image, message.author, "image0.jpeg"))
+				images.append((image, message.author, "image0"))
 			except ValueError as ve: # unknown url type
 				#print(141, ve)
 				pass
@@ -102,7 +102,7 @@ async def get_images_from_message(message: discord.Message, *, ignore_text: bool
 
 async def get_avatar_image(member: discord.Member) -> Image_with_info:
 	image = make_image_from_bytes(await member.avatar_url.read())
-	return (image, member, "{0}.jpeg".format(member.id))
+	return (image, member, str(member.id))
 
 async def find_images_from_context(ctx, *, ignore_first_text: bool = False) -> List[Image_with_info]:
 	message = ctx.message
