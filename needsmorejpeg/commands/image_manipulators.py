@@ -57,7 +57,11 @@ def zoom(image: PIL.Image.Image, zoom_factor: float) -> PIL.Image.Image:
 @image_manipulator(argtypes=())
 def invert(image: PIL.Image.Image) -> PIL.Image.Image:
 	"Invert the colors of an image"
-	return PIL.ImageOps.invert(image)
+	# return PIL.ImageOps.invert(image) # doesn't work with alpha channel
+	# https://stackoverflow.com/a/11491499/5142683
+	arr = np.array(image)
+	arr[:,:,0:3] = 255 - arr[:,:,0:3]
+	return PIL.Image.fromarray(arr)
 
 @image_manipulator(argtypes=())
 def hflip(image: PIL.Image.Image) -> PIL.Image.Image:
