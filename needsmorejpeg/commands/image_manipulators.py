@@ -93,7 +93,7 @@ hue_range = 40.0
 
 def hue(rgb: "Sequence[int, int, int, ...]") -> float:
 	"Hue of a color in degrees"
-	r, g, b, *_ = rgb
+	r, g, b, *rest = rgb
 	mx, mn = max(r, g, b), min(r, g, b)
 	if mx == mn: # https://stackoverflow.com/a/23094494/5142683
 		return 0.0
@@ -105,9 +105,9 @@ def hue(rgb: "Sequence[int, int, int, ...]") -> float:
 		return (240.0 + 60.0 * (r + 0 - g) / (mx + 0 - mn)) % 360.0
 
 def greyscale(rgb: "Sequence[int, int, int, ...]") -> "Sequence[int, int, int, ...]":
-	r, g, b, *_ = rgb
+	r, g, b, *rest = rgb
 	g = int(0.30 * r + 0.59 * g + 0.11 * b)
-	return [g, g, g, *_]
+	return [g, g, g, *rest]
 
 @image_manipulator(argtypes=(str,))
 def highlight(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
