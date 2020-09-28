@@ -14,7 +14,7 @@ import random
 import math # sin/cos
 import numpy as np
 
-from ..bot import bot
+from ..bot import bot, ErrorWithMessage
 from ..image_manipulator import image_manipulator, limit_size
 
 @image_manipulator(names=["jpg", "jpeg"], argtypes=())
@@ -45,7 +45,7 @@ def sharpen(image: PIL.Image.Image, factor: float) -> PIL.Image.Image:
 def zoom(image: PIL.Image.Image, zoom_factor: float) -> PIL.Image.Image:
 	"Zoom in to an image (centered at the center).\nArgument is a percentage greater than or equal to 100 (without the %), or a scale factor less than 100."
 	if zoom_factor <= 0:
-		raise ValueError("Negative zoom value")
+		raise ErrorWithMessage("Cannot have a negative zoom factor")
 	if zoom_factor >= 100:
 		zoom_factor /= 100
 	width, height = image.size
@@ -91,26 +91,29 @@ color_names = {
 	"purple": "8000FF",
 	"magenta": "FF00FF",
 	"hotpink": "FF0080",
+
+	"darkmode": "36393F",
 }
 
 hue_range = 32.0
 
-def hue(rgb: "Sequence[int, int, int, ...]") -> float:
+def hue(rgb: "Sequence[int, int, int, ...]") -> int:
 	"Hue of a color in range [0,255]"
 	return  PIL.Image.new("RGB", (1,1), rgb[:3]).convert("HSV").getpixel((0,0))[0]
 
-def parse_color(color: str) -> Tuple[int, int, int]:
+def parse_color(color_: str) -> Tuple[int, int, int]:
+	color = color_
 	if color[:1] == '#':
 		color = color[1:]
 	if not (set(color.upper()) <= {*"0123456789ABCDEF"}):
 		if color in color_names:
 			color = color_names[color]
 		else:
-			raise ValueError("unrecognized color")
+			raise ErrorWithMessage("Unrecognized color: %s" % color_)
 	if len(color) == 3:
 		color = color[0]*2 + color[1]*2 + color[2]*2
 	if len(color) != 6:
-		raise ValueError("unrecognized color")
+		raise ErrorWithMessage("Unrecognized color: %s" % color_)
 	return tuple(int(color[i:i+2], 16) for i in (0,2,4))
 
 @image_manipulator(argtypes=())
@@ -139,6 +142,24 @@ def highlight(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
 	else:
 		bad_hues = np.logical_or(arr[:,:,0] > h_high, arr[:,:,0] < h_low)
 	arr[:,:,1][bad_hues] = 0
+	new_image = PIL.Image.fromarray(arr, mode="HSV").convert("RGB")
+	if 'A' in image.mode:
+		new_image.putalpha(image.getchannel('A'))
+	return new_image
+
+@image_manipulator(argtypes=(str,), names=("highlight_fade", "highlight_beta"))
+def highlight_beta(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
+	"Highlight a particular color in an image"
+	color = parse_color(color)
+
+	h = hue(color)
+
+	arr = np.array(image.convert("HSV"))
+
+	hue_closenesses = abs(np.array(arr[:,:,0] - h, dtype="int8")) / 127.
+	hue_closenesses = 1 - hue_closenesses
+
+	arr[:,:,1] = arr[:,:,1] * hue_closenesses
 	new_image = PIL.Image.fromarray(arr, mode="HSV").convert("RGB")
 	if 'A' in image.mode:
 		new_image.putalpha(image.getchannel('A'))

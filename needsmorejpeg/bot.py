@@ -17,6 +17,10 @@ bot = commands.Bot(command_prefix=">", activity=discord.Game("use >jpeg"))
 def is_owner(ctx) -> bool:
 	return bot.is_owner(ctx.message.author)
 
+class ErrorWithMessage(Exception):
+	def __init__(self, msg):
+		self.msg = msg
+
 @bot.event
 async def on_command_error(ctx, error):
 	if isinstance(error, discord.ext.commands.CommandNotFound):
@@ -25,6 +29,9 @@ async def on_command_error(ctx, error):
 		await ctx.message.add_reaction("⛔")
 	elif isinstance(error.__cause__, PIL.Image.DecompressionBombError):
 		await ctx.message.add_reaction("😵")
+	elif isinstance(error.__cause__, ErrorWithMessage):
+		await ctx.message.add_reaction("⚠")
+		await ctx.send(error.__cause__.msg)
 	else:
 		await ctx.message.add_reaction("⚠")
 		raise error
