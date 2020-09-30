@@ -159,3 +159,6 @@ async def yt(ctx, arg: str):
 
 	await ctx.message.add_reaction("✅")
 
+@bot.command()
+async def ytsearch(ctx, *, arg: str):
+	return await yt(ctx, "ytsearch: {}".format(arg))
