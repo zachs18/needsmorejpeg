@@ -13,7 +13,7 @@ import random
 
 from .bot import bot
 
-def limit_size(image: PIL.Image.Image, maxsize: int = 4000 * 4000) -> PIL.Image.Image:
+def limit_size(image: PIL.Image.Image, maxsize: int = 2000 * 2000) -> PIL.Image.Image:
 	width, height = image.size
 	size = width * height
 	if size < maxsize:
