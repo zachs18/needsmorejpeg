@@ -126,6 +126,26 @@ def saturate(image: PIL.Image.Image) -> PIL.Image.Image:
 		new_image.putalpha(image.getchannel('A'))
 	return new_image
 
+@image_manipulator(argtypes=())
+def desaturate(image: PIL.Image.Image) -> PIL.Image.Image:
+	"Desaturate all colors in an image by half"
+	arr = np.array(image.convert("HSV"))
+	arr[:,:,1] //= 2
+	new_image = PIL.Image.fromarray(arr, mode="HSV").convert("RGB")
+	if 'A' in image.mode:
+		new_image.putalpha(image.getchannel('A'))
+	return new_image
+
+@image_manipulator(argtypes=(), names=("grey", "gray", "greyscale", "grayscale"))
+def grey(image: PIL.Image.Image) -> PIL.Image.Image:
+	"Desaturate all colors in an image completely"
+	arr = np.array(image.convert("HSV"))
+	arr[:,:,1] = 0
+	new_image = PIL.Image.fromarray(arr, mode="HSV").convert("RGB")
+	if 'A' in image.mode:
+		new_image.putalpha(image.getchannel('A'))
+	return new_image
+
 @image_manipulator(argtypes=(str,))
 def highlight(image: PIL.Image.Image, color: str) -> PIL.Image.Image:
 	"Highlight a particular color in an image"
