@@ -11,15 +11,13 @@ import io
 import asyncio
 import urllib.request
 import random
+from .errorwithmessage import ErrorWithMessage
 
 bot = commands.Bot(command_prefix=">", activity=discord.Game("use >jpeg"))
 
 def is_owner(ctx) -> bool:
 	return bot.is_owner(ctx.message.author)
 
-class ErrorWithMessage(Exception):
-	def __init__(self, msg):
-		self.msg = msg
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -101,3 +99,23 @@ async def whois(ctx):
 	else:
 		await ctx.message.add_reaction("⚠")
 		await ctx.send("Who is ... who?")
+
+@bot.command()
+@commands.check(is_owner)
+async def addvoice(ctx):
+	bot.load_extension("needsmorejpeg.cogs.voicecog")
+	await ctx.message.add_reaction("✅")
+
+@bot.command()
+@commands.check(is_owner)
+async def removevoice(ctx):
+	bot.unload_extension("needsmorejpeg.cogs.voicecog")
+	await ctx.message.add_reaction("✅")
+
+@bot.command()
+@commands.check(is_owner)
+async def reloadvoice(ctx):
+	bot.reload_extension("needsmorejpeg.cogs.voicecog")
+	await ctx.message.add_reaction("✅")
+
+bot.load_extension("needsmorejpeg.cogs.voicecog")
