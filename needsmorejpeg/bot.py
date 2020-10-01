@@ -12,6 +12,7 @@ import asyncio
 import urllib.request
 import random
 from .errorwithmessage import ErrorWithMessage
+import subprocess
 
 bot = commands.Bot(command_prefix=">", activity=discord.Game("use >jpeg"))
 
@@ -85,7 +86,9 @@ async def goodbot(ctx):
 @bot.command()
 async def source(ctx):
 	"Links to the github source for this bot"
-	await ctx.send("Source: https://github.com/zachs18/needsmorejpeg/")
+	branch = subprocess.Popen("git branch --show-current".split(), stdout=subprocess.PIPE).communicate()[0].decode().strip()
+	rev = subprocess.Popen("git rev-parse --short HEAD".split(), stdout=subprocess.PIPE).communicate()[0].decode().strip()
+	await ctx.send("Source: https://github.com/zachs18/needsmorejpeg/ (running branch {}, rev {})".format(branch, rev))
 
 @bot.command()
 async def whois(ctx):
