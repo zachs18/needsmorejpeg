@@ -127,23 +127,16 @@ class VoiceCog(commands.Cog):
 		# voice_data_wave = espeak.stdout.read()
 		voice_data = discord.FFmpegOpusAudio(espeak.stdout, pipe=True)
 
-		while espeak.poll() is None:
-			await asyncio.sleep(1)
-		if espeak.poll():
-			stderr.seek(0)
-			await ctx.send("Error: %s" % stderr.read().decode())
-			await ctx.message.add_reaction("🔇")
-			return
+		async def callback():
+			while espeak.poll() is None:
+				await asyncio.sleep(1)
+			if espeak.poll():
+				stderr.seek(0)
+				await ctx.send("Error: %s" % stderr.read().decode())
+				await ctx.message.add_reaction("🔇")
+				return
 
-		return await self._enqueue_item(ctx, voice_data, "Say message from {}".format(ctx.message.author.nick))
-
-		if ctx.message.guild.voice_client is not None and ctx.message.guild.voice_client.is_connected():
-			voice_client = ctx.message.guild.voice_client
-		else:
-			voice_client = await voice_channel.connect()
-
-		voice_client.play(voice_data)
-		await ctx.message.add_reaction("✅")
+		await self._enqueue_item(ctx, voice_data, "Say message from {}".format(ctx.message.author.nick), [callback()])
 
 	@commands.command()
 	async def say_slow(self, ctx, *, args: str):
