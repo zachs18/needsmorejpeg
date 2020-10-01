@@ -72,7 +72,7 @@ class VoiceCog(commands.Cog):
 			# Not playing, Queue empty
 			if voice_client is None:
 				return
-			await asyncio.sleep(3)
+			await asyncio.sleep(10)
 			if voice_client.is_connected() and not voice_client.is_playing():
 				await voice_client.disconnect()
 			return
