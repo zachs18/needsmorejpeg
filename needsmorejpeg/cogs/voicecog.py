@@ -94,7 +94,7 @@ class VoiceCog(commands.Cog):
 		msg = None
 		if ctx.guild in self.queues:
 			msg = '\n'.join("{}: {}".format(i, item.description) for i,item in enumerate(self.queues[ctx.guild]))
-		msg = msg or "No items in queue.")
+		msg = msg or "No items in queue."
 		await ctx.send(msg)
 
 	@commands.command()
