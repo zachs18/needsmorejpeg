@@ -127,6 +127,8 @@ class VoiceCog(commands.Cog):
 		# voice_data_wave = espeak.stdout.read()
 		voice_data = discord.FFmpegOpusAudio(espeak.stdout, pipe=True)
 
+		await ctx.message.add_reaction("💾")
+
 		async def callback():
 			while espeak.poll() is None:
 				await asyncio.sleep(1)
@@ -180,6 +182,8 @@ class VoiceCog(commands.Cog):
 		# voice_data_wave = espeak.stdout.read()
 		voice_data = discord.FFmpegOpusAudio(file, pipe=True)
 
+		await ctx.message.add_reaction("💾")
+
 		await self._enqueue_item(ctx, voice_data, "A file uploaded by {}".format(ctx.message.author.nick))
 
 	@commands.command()
@@ -205,6 +209,8 @@ class VoiceCog(commands.Cog):
 			await asyncio.sleep(1)
 
 		voice_data = discord.FFmpegOpusAudio(filename, pipe=False)
+
+		await ctx.message.add_reaction("💾")
 
 		await self._enqueue_item(
 			ctx,
