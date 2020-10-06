@@ -189,12 +189,6 @@ class VoiceCog(commands.Cog):
 	@commands.command()
 	async def yt(self, ctx, arg: str):
 		"Joins the voice channel you are in and plays what you passed to it"
-		try:
-			voice_channel = ctx.author.voice.channel
-			voice_channel.name # raise AttributeError if voice_channel is None
-		except AttributeError:
-			await ctx.send("Could not find a voice channel")
-			raise ValueError
 
 		if arg.startswith('-') or not (arg.startswith('http') or arg.startswith('ytsearch:')):
 			await ctx.send("Invalid URL")
