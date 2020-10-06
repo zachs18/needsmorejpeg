@@ -32,7 +32,7 @@ class VoiceCog(commands.Cog):
 	def make_async_callback(self, *coros) -> Callable[[object], None]:
 		def callback(error) -> None:
 			for coro in coros:
-				if isinstance(coro, type(lambda:None)): # This is a function, not a coroutine
+				if callable(coro): # This is a function, not a coroutine
 					coro()
 				else: # This is a coroutine
 					asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
@@ -54,7 +54,7 @@ class VoiceCog(commands.Cog):
 	async def _enqueue_item(self, ctx, voice_data, description: str, callbacks = []):
 		voice_client = await self._get_voice_client(ctx)
 
-		queue_item = QueueItem(voice_data, ctx, description)
+		queue_item = QueueItem(voice_data, ctx, description, callbacks)
 
 		if ctx.guild not in self.queues:
 			self.queues[ctx.guild] = [queue_item]
@@ -216,7 +216,7 @@ class VoiceCog(commands.Cog):
 			ctx,
 			voice_data,
 			"A youtube video chosen by {}".format(ctx.message.author.nick),
-			callbacks=[(lambda: os.remove(filename))]
+			callbacks=[lambda: os.remove(filename)]
 		)
 
 	@commands.command()
