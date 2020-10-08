@@ -30,6 +30,15 @@ class VoiceCog(commands.Cog):
 		self.queues: Dict[discord.Guild, List[QueueItem]] = dict()
 		self.loops: Dict[discord.Guild, bool] = dict()
 
+	@commands.command()
+	def voicetest(self, ctx, arg: str):
+		if arg == "1":
+			voice_data = discord.FFmpegOpusAudio("/tmp/voicetest.mp3", pipe=False)
+			await self._enqueue_item(ctx, voice_data, "A test")
+			await self._enqueue_item(ctx, voice_data, "A test")
+		else:
+			await ctx.message.add_reaction("❓")
+
 	def make_async_callback(self, *coros) -> Callable[[object], None]:
 		def callback(error) -> None:
 			for coro in coros:
