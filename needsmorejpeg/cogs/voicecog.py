@@ -30,12 +30,15 @@ class VoiceCog(commands.Cog):
 		self.queues: Dict[discord.Guild, List[QueueItem]] = dict()
 		self.loops: Dict[discord.Guild, bool] = dict()
 
+	@commands.Cog.listener()
+	async def on_voice_state_update(self, member, before, after):
+		print(self, member, before, after)
+
 	@commands.command()
-	await def voicetest(self, ctx, arg: str):
+	async def voicetest(self, ctx, arg: str):
 		if arg == "1":
 			voice_data = discord.FFmpegOpusAudio("/tmp/voicetest.mp3", pipe=False)
-			await self._enqueue_item(ctx, voice_data, "A test")
-			await self._enqueue_item(ctx, voice_data, "A test")
+			await self._enqueue_item(ctx, voice_data, "A test", callbacks=[self._enqueue_item(ctx, discord.FFmpegOpusAudio("/tmp/voicetest.mp3", pipe=False), "A test")])
 		else:
 			await ctx.message.add_reaction("❓")
 
