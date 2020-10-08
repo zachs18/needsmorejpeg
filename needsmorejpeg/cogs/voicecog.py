@@ -31,7 +31,7 @@ class VoiceCog(commands.Cog):
 		self.loops: Dict[discord.Guild, bool] = dict()
 
 	@commands.command()
-	def voicetest(self, ctx, arg: str):
+	await def voicetest(self, ctx, arg: str):
 		if arg == "1":
 			voice_data = discord.FFmpegOpusAudio("/tmp/voicetest.mp3", pipe=False)
 			await self._enqueue_item(ctx, voice_data, "A test")
