@@ -28,6 +28,7 @@ class VoiceCog(commands.Cog):
 		self.bot = bot
 		self.connections: Dict[discord.Guild, discord.VoiceClient] = dict()
 		self.queues: Dict[discord.Guild, List[QueueItem]] = dict()
+		self.loops: Dict[discord.Guild, bool] = dict()
 
 	def make_async_callback(self, *coros) -> Callable[[object], None]:
 		def callback(error) -> None:
@@ -50,6 +51,17 @@ class VoiceCog(commands.Cog):
 		voice_client = await self._get_voice_client(ctx)
 #		voice_client.play(voice_data, after = lambda e: asyncio.run_coroutine_threadsafe(ctx.message.add_reaction("✅"), self.bot.loop))
 		voice_client.play(voice_data, after = self.make_async_callback(ctx.message.add_reaction("✅")))
+
+	async def _toggle_loop(self, ctx):
+		if ctx.guild not in self.loops:
+			self.loops[ctx.guild] = True
+		else:
+			self.loops[ctx.guild] = not self.loops[ctx.guild]
+
+	async def _do_loop(self, ctx):
+		if ctx.guild not in self.loops:
+			return False
+		return self.loops[ctx.guild]
 
 	async def _enqueue_item(self, ctx, voice_data, description: str, callbacks = []):
 		voice_client = await self._get_voice_client(ctx)
@@ -78,14 +90,29 @@ class VoiceCog(commands.Cog):
 			return
 		voice_client = await self._get_voice_client(ctx)
 		queue_item = queue.pop(0)
+
+		if await self._do_loop(ctx):
+			reaction = "🔄"
+		else:
+			reaction = "✅"
 		voice_client.play(queue_item.voice_data, after = self.make_async_callback(
-			queue_item.ctx.message.add_reaction("✅"),
+			queue_item.ctx.message.add_reaction(reaction),
 			self._play_next_if_not_playing(ctx),
 			*queue_item.callbacks
 		))
 
 	@commands.command()
+	async def loop(self, ctx):
+		await self._toggle_loop(ctx)
+		if await self._do_loop(ctx):
+			await ctx.message.add_reaction("🔄")
+		else:
+			await ctx.message.add_reaction("✅")
+
+	@commands.command()
 	async def skip(self, ctx):
+		if await self._do_loop(ctx):
+			await self._toggle_loop(ctx)
 		voice_client = await self._get_voice_client(ctx)
 		voice_client.stop()
 
@@ -206,11 +233,18 @@ class VoiceCog(commands.Cog):
 
 		await ctx.message.add_reaction("💾")
 
+		async def _loop_helper():
+			if await self._do_loop(ctx):
+				voice_data = discord.FFmpegOpusAudio(filename, pipe=False)
+				await self._enqueue_item(ctx, voice_data, "A loop", callbacks=[_loop_helper()])
+			else:
+				os.remove(filename)
+
 		await self._enqueue_item(
 			ctx,
 			voice_data,
 			"A youtube video chosen by {}".format(ctx.message.author.nick),
-			callbacks=[lambda: os.remove(filename)]
+			callbacks=[_loop_helper()]
 		)
 
 	@commands.command()
