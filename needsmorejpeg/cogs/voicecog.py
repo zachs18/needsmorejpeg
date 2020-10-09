@@ -21,7 +21,6 @@ class QueueItem:
 		self.get_voice_data_func: Callable[[], discord.AudioSource] = get_voice_data_func
 		self.description: str = description
 		self.origin_message: Optional[Discord.Message] = origin_message
-		
 
 class VoiceQueue:
 	def __init__(self, cog):
@@ -30,18 +29,18 @@ class VoiceQueue:
 		self.loop: bool = False
 		self.now_playing: Optional[QueueItem] = None
 		self.items: List[QueueItem] = []
-	
+
 	@property
 	def channel(self):
 		return self.connection.channel if self.connection else None
-			
+
 	def is_connected(self) -> bool:
 		return self.connection is not None
-			
+
 	async def connect(self, channel: discord.VoiceChannel):
 		assert not self.is_connected(), ".connect called on already connected VoiceQueue {}".format(self.connection)
 		self.connection = await channel.connect()
-	
+
 	async def disconnect(self):
 		assert self.is_connected(), ".disconnect called on a not connected VoiceQueue {}".format(self.connection)
 		self.loop = False
@@ -49,13 +48,13 @@ class VoiceQueue:
 		self.connection = None
 		self.now_playing = None
 		self.items = []
-		
+
 	def set_loop(self, loop: Optional[bool] = None):
 		if loop is None:
 			self.loop = not self.loop
 		else:
 			self.loop = loop
-		
+
 	async def handle_item_end(self):
 		item = self.now_playing
 		self.now_playing = None
@@ -75,8 +74,7 @@ class VoiceQueue:
 			)
 			if self.loop and item is not None:
 				await self.enqueue(item)
-			
-		
+
 	async def enqueue(self, item):
 		if self.now_playing is None:
 			self.connection.play(
@@ -86,7 +84,7 @@ class VoiceQueue:
 			self.now_playing = item
 		else:
 			self.items.append(item)
-			
+
 	async def remove_item(self, index: int):
 		if index == 0:
 			self.now_playing = None
@@ -131,10 +129,10 @@ class VoiceCog(commands.Cog):
 
 		if ctx.guild not in self.queues:
 			self.queues[ctx.guild] = VoiceQueue(self)
-		
+
 		if not self.queues[ctx.guild].is_connected():
 			await self.queues[ctx.guild].connect(ctx.author.voice.channel)
-			
+
 		await self.queues[ctx.guild].enqueue(queue_item)
 
 	@commands.command()
@@ -144,12 +142,11 @@ class VoiceCog(commands.Cog):
 
 	@commands.command()
 	async def queue(self, ctx):
-		msg = None
-		if ctx.guild in self.queues:
+		msg = "No items in queue."
+		if ctx.guild in self.queues and self.queues[ctx.guild].now_playing is not None:
 			msg = '\n'.join("{}: {}".format(i, item.description) for i,item in enumerate([self.queues[ctx.guild].now_playing] + self.queues[ctx.guild].items))
-		msg = msg or "No items in queue."
 		await ctx.send(msg)
-		
+
 	@commands.command()
 	async def remove(self, ctx, index: int):
 		await self.queues[ctx.guild].remove_item(index)
@@ -276,7 +273,7 @@ class VoiceCog(commands.Cog):
 	@commands.command()
 	async def ytsearch(self, ctx, *, arg: str):
 		await self.yt(ctx, "ytsearch: {}".format(arg))
-		
+
 	def cog_unload(self):
 		for g, q in self.queues.items():
 			asyncio.run_coroutine_threadsafe(
