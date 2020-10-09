@@ -65,6 +65,9 @@ async def on_reaction_add(reaction: discord.Reaction, user: Union[discord.Member
 async def quit(ctx):
 #	await ctx.send("Goodbye")
 	await ctx.message.add_reaction("👋")
+	for name in [*bot.cogs]: # [*dict()] because the dict will resize while we do this
+		bot.remove_cog(name) # so cogs can unload before logout
+	await asyncio.sleep(1) # so asyncio.run_coroutine_threadsafe can work
 	await ctx.bot.logout()
 
 @bot.command()
