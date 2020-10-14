@@ -196,7 +196,7 @@ class VoiceCog(commands.Cog):
 
 		await ctx.message.add_reaction("💾")
 
-		await self._enqueue_item(ctx, make_voice_data, "Say message from {}".format(ctx.message.author.nick))
+		await self._enqueue_item(ctx, make_voice_data, "Say message from {}".format(ctx.message.author.nick or ctx.message.author.name))
 
 	@commands.command()
 	async def say_slow(self, ctx, *, args: str):
@@ -225,14 +225,14 @@ class VoiceCog(commands.Cog):
 
 		if ctx.message.attachments:
 			data_bytes = await ctx.message.attachments[0].read()
-			description = "A file uploaded by {} ({})".format(ctx.message.author.nick, ctx.message.attachments[0].filename)
+			description = "A file uploaded by {} ({})".format(ctx.message.author.nick or ctx.message.author.name, ctx.message.attachments[0].filename)
 		else:
 			request = urllib.request.Request(arg, None, headers=headers)
 			response = urllib.request.urlopen(request)
 			if not response:
 				raise ValueError
 			data_bytes = response.read()
-			description = "A file chosen by {} ({})".format(ctx.message.author.nick, arg)
+			description = "A file chosen by {} ({})".format(ctx.message.author.nick or ctx.message.author.name, arg)
 
 		def make_voice_data():
 			data_file = tempfile.TemporaryFile()
@@ -267,7 +267,7 @@ class VoiceCog(commands.Cog):
 		await self._enqueue_item(
 			ctx,
 			make_voice_data,
-			"A youtube video chosen by {} ({})".format(ctx.message.author.nick, arg)
+			"A youtube video chosen by {} ({})".format(ctx.message.author.nick or ctx.message.author.name, arg)
 		)
 
 	@commands.command()
