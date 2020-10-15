@@ -8,7 +8,7 @@ import io
 import os
 import tempfile
 import asyncio
-from collections import namedtuple
+from collections import defaultdict
 
 from ..errorwithmessage import ErrorWithMessage
 
@@ -29,6 +29,7 @@ class VoiceQueue:
 		self.loop: bool = False
 		self.now_playing: Optional[QueueItem] = None
 		self.items: List[QueueItem] = []
+		self.recent_error: Optional[str] = None
 
 	@property
 	def channel(self):
@@ -92,10 +93,18 @@ class VoiceQueue:
 		else:
 			self.items.pop(index-1) # offset -1 for now_playing
 
+	def log_error(self, err: str):
+		self.recent_error = err
+
+	def pop_error(self) -> Optional[str]:
+		err = self.recent_error
+		self.recent_error = None
+		return err
+
 class VoiceCog(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
-		self.queues: Dict[discord.Guild, VoiceQueue] = dict()
+		self.queues: Dict[discord.Guild, VoiceQueue] = defaultdict(lambda: VoiceQueue(self))
 
 	def make_async_callback(self, *coros) -> Callable[[object], None]:
 		def callback(error) -> None:
@@ -105,6 +114,18 @@ class VoiceCog(commands.Cog):
 				else: # This is a coroutine
 					asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
 		return callback
+
+	def log_error(self, ctx, err):
+		self.queues[ctx.guild].log_error(err)
+
+	@commands.command()
+	async def log(self, ctx):
+		err = self.queues[ctx.guild].pop_error()
+		if err is not None:
+			await ctx.send("Most Recent Error:\n```{}```".format(err))
+		else:
+			await ctx.message.add_reaction("⚠")
+			await ctx.send("No recent error.")
 
 	@commands.Cog.listener()
 	async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
@@ -118,17 +139,12 @@ class VoiceCog(commands.Cog):
 
 	@commands.command()
 	async def loop(self, ctx, l: Optional[bool]):
-		if ctx.guild not in self.queues:
-			self.queues[ctx.guild] = VoiceQueue(self)
 		self.queues[ctx.guild].set_loop(l)
 		await ctx.message.add_reaction("🔄" if self.queues[ctx.guild].loop else "✅")
 
 	async def _enqueue_item(self, ctx, get_voice_data_func, description: str):
 
 		queue_item = QueueItem(get_voice_data_func, description, ctx.message)
-
-		if ctx.guild not in self.queues:
-			self.queues[ctx.guild] = VoiceQueue(self)
 
 		if not self.queues[ctx.guild].is_connected():
 			await self.queues[ctx.guild].connect(ctx.author.voice.channel)
@@ -143,7 +159,7 @@ class VoiceCog(commands.Cog):
 	@commands.command()
 	async def queue(self, ctx):
 		msg = "No items in queue."
-		if ctx.guild in self.queues and self.queues[ctx.guild].now_playing is not None:
+		if self.queues[ctx.guild].now_playing is not None:
 			msg = '\n'.join("{}: {}".format(i, item.description) for i,item in enumerate([self.queues[ctx.guild].now_playing] + self.queues[ctx.guild].items))
 		await ctx.send(msg)
 
@@ -154,7 +170,7 @@ class VoiceCog(commands.Cog):
 
 	@commands.command()
 	async def leave(self, ctx):
-		if ctx.guild not in self.queues or not self.queues[ctx.guild].is_connected():
+		if not self.queues[ctx.guild].is_connected():
 			await ctx.send("No current voice connection found.")
 			await ctx.message.add_reaction("⚠")
 		else:
@@ -180,9 +196,10 @@ class VoiceCog(commands.Cog):
 		while espeak.poll() is None:
 			await asyncio.sleep(1)
 		if espeak.poll() != 0:
+			await ctx.message.add_reaction("⚠")
+			await ctx.send("Espeak exited unsuccessfully ({})".format(espeak.poll()))
 			stderr.seek(0)
-			await ctx.send("Error: %s" % stderr.read().decode())
-			await ctx.message.add_reaction("🔇")
+			self.log_error(ctx, stderr.read().decode())
 			return
 		stdout.seek(0)
 		data_bytes = stdout.read()
@@ -228,9 +245,16 @@ class VoiceCog(commands.Cog):
 			description = "A file uploaded by {} ({})".format(ctx.message.author.nick or ctx.message.author.name, ctx.message.attachments[0].filename)
 		else:
 			request = urllib.request.Request(arg, None, headers=headers)
-			response = urllib.request.urlopen(request)
+			try:
+				response = urllib.request.urlopen(request)
+			except urllib.error.URLError:
+				await ctx.message.add_reaction("⚠")
+				await ctx.send("Could not download file. (invalid url)")
+				return
 			if not response:
-				raise ValueError
+				await ctx.message.add_reaction("⚠")
+				await ctx.send("Could not download file. (code {})".format(response.code))
+				return
 			data_bytes = response.read()
 			description = "A file chosen by {} ({})".format(ctx.message.author.nick or ctx.message.author.name, arg)
 
@@ -257,12 +281,17 @@ class VoiceCog(commands.Cog):
 
 		await ctx.message.add_reaction("🔜")
 
-		ytdl = subprocess.Popen(["youtube-dl", arg, "--no-playlist", "--no-continue", "-f", "bestaudio", "--extract-audio", "--audio-format", "mp3", "-o", file.name], stderr=stderr)
+		ytdl = subprocess.Popen(
+			["youtube-dl", arg, "--no-playlist", "--no-continue", "-f", "bestaudio", "--extract-audio", "--audio-format", "mp3", "-o", file.name],
+			stderr=stderr
+		)
 		while ytdl.poll() is None:
 			await asyncio.sleep(1)
 		if ytdl.poll() != 0:
 			await ctx.message.add_reaction("⚠")
 			await ctx.send("Youtube-dl exited unsuccessfully ({})".format(ytdl.poll()))
+			stderr.seek(0)
+			self.log_error(ctx, stderr.read().decode())
 			return
 
 		make_voice_data = lambda: discord.FFmpegOpusAudio(file.name, pipe=False)
