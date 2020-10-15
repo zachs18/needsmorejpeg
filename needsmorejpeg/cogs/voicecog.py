@@ -253,12 +253,17 @@ class VoiceCog(commands.Cog):
 			raise ValueEroor
 
 		file = tempfile.NamedTemporaryFile(suffix=".mp3")
+		stderr = tempfile.TemporaryFile()
 
 		await ctx.message.add_reaction("🔜")
 
-		ytdl = subprocess.Popen(["youtube-dl", arg, "--no-playlist", "--no-continue", "-f", "bestaudio", "--extract-audio", "--audio-format", "mp3", "-o", file.name])
+		ytdl = subprocess.Popen(["youtube-dl", arg, "--no-playlist", "--no-continue", "-f", "bestaudio", "--extract-audio", "--audio-format", "mp3", "-o", file.name], stderr=stderr)
 		while ytdl.poll() is None:
 			await asyncio.sleep(1)
+		if ytdl.poll() != 0:
+			await ctx.message.add_reaction("⚠")
+			await ctx.send("Youtube-dl exited unsuccessfully ({})".format(ytdl.poll()))
+			return
 
 		make_voice_data = lambda: discord.FFmpegOpusAudio(file.name, pipe=False)
 
