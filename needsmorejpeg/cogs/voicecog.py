@@ -61,7 +61,7 @@ class VoiceQueue:
 		self.now_playing = None
 		if not self.items:
 			if self.loop and item is not None:
-				await self.enqueue(item)
+				self.enqueue(item)
 			else:
 				self.loop = False
 				await asyncio.sleep(3)
@@ -74,9 +74,9 @@ class VoiceQueue:
 				after = self.cog.make_async_callback(self.handle_item_end())
 			)
 			if self.loop and item is not None:
-				await self.enqueue(item)
+				self.enqueue(item)
 
-	async def enqueue(self, item):
+	def enqueue(self, item):
 		if self.now_playing is None:
 			self.connection.play(
 				item.get_voice_data_func(),
@@ -86,7 +86,24 @@ class VoiceQueue:
 		else:
 			self.items.append(item)
 
-	async def remove_item(self, index: int):
+	def move_item(self, from_index: int, to_index: int):
+		if from_index == 0:
+			item = self.now_playing
+			self.now_playing = None
+			self.items.insert(to_index, item)
+			self.connection.stop()
+		elif to_index == 0:
+			self.items.insert(0, self.now_playing)
+			self.items.insert(0, self.items.pop(from_index))
+			self.now_playing = None
+			self.connection.stop()
+		else:
+			if from_index > 0: from_index -= 1 # fix index for now_playing while allowing end-relative indexing
+			if to_index > 0: to_index -= 1 # fix index for now_playing while allowing end-relative indexing
+			item = self.items.pop(from_index)
+			self.items.insert(to_index, item)
+
+	def remove_item(self, index: int):
 		if index == 0:
 			self.now_playing = None
 			self.connection.stop()
@@ -149,11 +166,16 @@ class VoiceCog(commands.Cog):
 		if not self.queues[ctx.guild].is_connected():
 			await self.queues[ctx.guild].connect(ctx.author.voice.channel)
 
-		await self.queues[ctx.guild].enqueue(queue_item)
+		self.queues[ctx.guild].enqueue(queue_item)
 
 	@commands.command()
 	async def skip(self, ctx):
 		self.queues[ctx.guild].connection.stop()
+		await ctx.message.add_reaction("✅")
+
+	@commands.command()
+	async def move(self, ctx, from_ind: int, to_ind: int):
+		self.queues[ctx.guild].move_item(from_ind, to_ind)
 		await ctx.message.add_reaction("✅")
 
 	@commands.command()
@@ -165,7 +187,7 @@ class VoiceCog(commands.Cog):
 
 	@commands.command()
 	async def remove(self, ctx, index: int):
-		await self.queues[ctx.guild].remove_item(index)
+		self.queues[ctx.guild].remove_item(index)
 		await ctx.message.add_reaction("✅")
 
 	@commands.command()
