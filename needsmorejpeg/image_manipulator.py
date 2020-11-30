@@ -139,9 +139,9 @@ def command_from_image_manipulator(func: Callable[[PIL.Image.Image], PIL.Image.I
 				#modified_image = func(image, *args)
 				modified_image = limit_size(func(image, *args))
 				file = make_file_from_image(modified_image, filename=filename)
-				# allowed_mentions = discord.AllowedMentions(everyone = False, users = False, roles = False)
-				# message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file, allowed_mentions=allowed_mentions)
-				message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file)
+				allowed_mentions = discord.AllowedMentions.none()
+				message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file, allowed_mentions=allowed_mentions)
+				# message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file)
 				await message.add_reaction("❌")
 	command.__name__ = func.__name__
 	command.__doc__ = func.__doc__
@@ -244,9 +244,9 @@ async def manipulate(ctx, *args: str):
 			#print(args)
 			modified_image = await func(image)
 			file = make_file_from_image(modified_image, filename=filename)
-			# allowed_mentions = discord.AllowedMentions(everyone = False, users = False, roles = False)
-			# message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file, allowed_mentions=allowed_mentions)
-			message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file)
+			allowed_mentions = discord.AllowedMentions.none()
+			message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file, allowed_mentions=allowed_mentions)
+			# message = await ctx.send("{0} or {1} may delete this by reacting ❌".format(ctx.message.author.mention, author.mention), file=file)
 			await message.add_reaction("❌")
 	await ctx.message.remove_reaction("🔜", bot.user)
 
